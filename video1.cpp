@@ -93,33 +93,93 @@ int main( void ) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); 
     // 一度ダミーでテクスチャーをつくっておく（あとでビデオ映像で更新する）
-    glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, NULL);
     glGenerateMipmap(GL_TEXTURE_2D);
     
     // Get a handle for our "myTextureSampler" uniform
     GLuint TextureID  = glGetUniformLocation(programID, "myTextureSampler");
 
-    static const GLfloat g_vertex_buffer_data[] = { 
-        -1.0f, -1.0f, 0.0f,
-        1.0f, -1.0f, 0.0f,
-        1.0f,  1.0f, 0.0f,
-        -1.0f,  1.0f, 0.0f,
+    // 三角形Mesh
+
+    GLfloat ox = 0.2;  // 画像をゆがめる例(0.0で正常になる)
+    static const GLfloat g_vertex_buffer_data[] = {
+        -1.0, -1.0, 0.0,
+        0.0,  -1.0, 0.0, 
+        ox,   0.0, 0.0,
+
+        -1.0, -1.0, 0.0,
+        ox,  0.0, 0.0,
+        -1.0, 0.0, 0.0,
+
+        -1.0, 0.0, 0.0,
+        ox, 0.0, 0.0,
+        0.0, 1.0, 0.0,
+
+        -1.0, 0.0, 0.0,
+        0.0, 1.0,  0.0,
+        -1.0, 1.0, 0.0,
+
+        0.0, -1.0, 0.0,
+        1.0, -1.0, 0.0, 
+        1.0, 0.0, 0.0,
+
+        0.0, -1.0, 0.0,
+        1.0, 0.0, 0.0,
+        ox, 0.0, 0.0,
+
+        ox, 0.0, 0.0,
+        1.0, 0.0, 0.0, 
+        1.0, 1.0, 0.0,
+
+        ox, 0.0, 0.0,
+        1.0, 1.0, 0.0,
+        0.0, 1.0, 0.0,
     };
 
     // Two UV coordinatesfor each vertex.
     static const GLfloat g_uv_buffer_data[] = {
-        0.0f, 1.0f,
-        1.0f, 1.0f,
-        1.0f, 0.0f,
-        0.0f, 0.0f
+        0.0, 1.0,
+        0.5, 1.0,
+        0.5, 0.5,
+
+        0.0, 1.0,
+        0.5, 0.5,
+        0.0, 0.5,
+
+        0.0, 0.5,
+        0.5, 0.5,
+        0.5, 0.0,
+
+        0.0, 0.5,
+        0.5, 0.0,
+        0.0, 0.0,
+
+        0.5, 1.0,
+        1.0, 1.0,
+        1.0, 0.5,
+
+        0.5, 1.0,
+        1.0, 0.5,
+        0.5, 0.5,
+
+        0.5, 0.5,
+        1.0, 0.5,
+        1.0, 0.0,
+
+        0.5, 0.5,
+        1.0, 0.0,
+        0.5, 0.0,
     };
 
     GLuint vertexbuffer;
     glGenBuffers(1, &vertexbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+
+    int ntriangles = (sizeof(g_uv_buffer_data) / sizeof(GLfloat)) / (2*3);
+    cout << "ntriangles" << ntriangles << endl;
 
     GLuint uvbuffer;
     glGenBuffers(1, &uvbuffer);
@@ -155,7 +215,6 @@ int main( void ) {
         // Set our "myTextureSampler" sampler to user Texture Unit 0
         glUniform1i(TextureID, 0);
 
-
         // 1rst attribute buffer : vertices
         glEnableVertexAttribArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
@@ -181,9 +240,8 @@ int main( void ) {
             );
         
 
-        // Draw the triangle !
-        glDrawArrays(GL_TRIANGLE_FAN, 0, 4); // 4 indices starting at 0 -> 1 rectangle
-        //glDrawArrays(GL_TRIANGLES, 0, 3); // 4 indices starting at 0 -> 1 rectangle
+        // Draw the triangles !
+        glDrawArrays(GL_TRIANGLES, 0, ntriangles*3); // 4 indices starting at 0 -> 1 rectangle
 
         glDisableVertexAttribArray(0);
         glDisableVertexAttribArray(1);
