@@ -46,7 +46,7 @@ typedef struct {
     VideoCapture capture;
 } VideoTexture;
 
-void createTexture(VideoTexture& vt, GLuint unit, GLuint programID, VideoCapture capture, GLfloat *vertex_buffer, int nvertex, GLfloat *uv_buffer, int nuv) {
+void textureCreate(VideoTexture& vt, GLuint unit, GLuint programID, VideoCapture capture, GLfloat *vertex_buffer, int nvertex, GLfloat *uv_buffer, int nuv) {
     vt.unit = unit;
     vt.vertex_buffer = vertex_buffer;
     vt.uv_buffer = uv_buffer;
@@ -67,7 +67,8 @@ void createTexture(VideoTexture& vt, GLuint unit, GLuint programID, VideoCapture
     glGenBuffers(1, &(vt.uv_id));
     glBindBuffer(GL_ARRAY_BUFFER, vt.uv_id);
     glBufferData(GL_ARRAY_BUFFER, nuv*sizeof(GLfloat), vt.uv_buffer, GL_STATIC_DRAW);
-    
+
+    vt.capture = capture;
     vt.width = capture.get(CV_CAP_PROP_FRAME_WIDTH);
     vt.height = capture.get(CV_CAP_PROP_FRAME_HEIGHT);
     printf("video size %d %d\n", vt.width, vt.height);
@@ -86,7 +87,7 @@ void createTexture(VideoTexture& vt, GLuint unit, GLuint programID, VideoCapture
     glGenerateMipmap(GL_TEXTURE_2D);
 }
 
-void nextFrameTexture(VideoTexture &vt) {
+void textureNextFrame(VideoTexture &vt) {
     vt.capture >> vt.frame;
     if (vt.frame.empty()) {  // auto rewind -- movie file playback only
         cout << "rewind" << vt.unit << endl;
@@ -96,13 +97,13 @@ void nextFrameTexture(VideoTexture &vt) {
 }
 
 //void setTexture(GLuint unit, GLuint texture, GLuint textureLoc, int width, int height, unsigned char *data) {
-void drawTexture(VideoTexture &vt, unsigned char *data) {
+void textureDraw(VideoTexture &vt) {
     // Bind our texture in Texture Unit unit
     glActiveTexture(GL_TEXTURE0 + vt.unit);
 
 //    cout << "setTexture" << vt.unit << " " << vt.texture_id << " " << vt.texture_loc << endl;
     glBindTexture(GL_TEXTURE_2D, vt.texture_id);
-    glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, vt.width, vt.height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, vt.width, vt.height, 0, GL_BGR, GL_UNSIGNED_BYTE, vt.frame.data);
     glGenerateMipmap(GL_TEXTURE_2D);
     glUniform1i(vt.texture_loc, vt.unit);
 
@@ -136,6 +137,13 @@ void drawTexture(VideoTexture &vt, unsigned char *data) {
     glDisableVertexAttribArray(1);
 }
 
+// Cleanup VBO
+void textureDelete(VideoTexture &vt) {
+    glDeleteBuffers(1, (const GLuint*)&(vt.vertex_buffer));
+    glDeleteBuffers(1, (const GLuint*)&(vt.uv_buffer));
+    glDeleteTextures(1, &(vt.texture_loc));
+    glDeleteVertexArrays(1, &(vt.vertex_array_id));
+}
 
 int main( void ) {
     VideoCapture capture1("../dejavu.mp4");
@@ -224,33 +232,17 @@ int main( void ) {
 
     VideoTexture vTexture1, vTexture2;
     // テクスチャを準備する
-    createTexture(vTexture1, 0, programID, capture1, (GLfloat*)g_vertex_buffer_data, sizeof(g_vertex_buffer_data) / sizeof(GLfloat), (GLfloat*)g_uv_buffer_data, sizeof(g_uv_buffer_data) / sizeof(GLfloat));
-    createTexture(vTexture2, 1, programID, capture2, (GLfloat*)g_vertex_buffer_data2, sizeof(g_vertex_buffer_data2) / sizeof(GLfloat), (GLfloat*)g_uv_buffer_data, sizeof(g_uv_buffer_data) / sizeof(GLfloat));
+    textureCreate(vTexture1, 0, programID, capture1, (GLfloat*)g_vertex_buffer_data, sizeof(g_vertex_buffer_data) / sizeof(GLfloat), (GLfloat*)g_uv_buffer_data, sizeof(g_uv_buffer_data) / sizeof(GLfloat));
+    textureCreate(vTexture2, 1, programID, capture2, (GLfloat*)g_vertex_buffer_data2, sizeof(g_vertex_buffer_data2) / sizeof(GLfloat), (GLfloat*)g_uv_buffer_data, sizeof(g_uv_buffer_data) / sizeof(GLfloat));
     
-
     startFPS();
     
     do{
         tickFPS();
 
-        Mat frame1, frame2;
-        capture1 >> frame1;
-        if (frame1.empty()) {  // auto rewind -- movie file playback only
-            cout << "rewind1" << endl;
-            capture1.set(CV_CAP_PROP_POS_FRAMES, 0);
-            capture1 >> frame1;
-        }
-        capture2 >> frame2;
-        if (frame2.empty()) {  // auto rewind -- movie file playback only
-            cout << "rewind1" << endl;
-            capture2.set(CV_CAP_PROP_POS_FRAMES, 0);
-            capture2 >> frame2;
-        }
-
-        /*
-        nextFrameTexture(vTexture1);
-        nextFrameTexture(vTexture2);
-        */
+        // Get next video frames
+        textureNextFrame(vTexture1);
+        textureNextFrame(vTexture2);
         
         // Clear the screen
         glClear( GL_COLOR_BUFFER_BIT );
@@ -258,8 +250,8 @@ int main( void ) {
         // Use our shader
         glUseProgram(programID);
 
-        drawTexture(vTexture1, frame1.data);
-        drawTexture(vTexture2, frame2.data);
+        textureDraw(vTexture1);
+        textureDraw(vTexture2);
 
         // Swap buffers
         glfwSwapBuffers(window);
@@ -269,14 +261,10 @@ int main( void ) {
     while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
            glfwWindowShouldClose(window) == 0 );
 
-    /*
-    // Cleanup VBO and shader
-    glDeleteBuffers(1, &vertexbuffer);
-    glDeleteBuffers(1, &uvbuffer);
+    textureDelete(vTexture1);
+    textureDelete(vTexture2);
+
     glDeleteProgram(programID);
-    glDeleteTextures(1, &TextureLoc);
-    glDeleteVertexArrays(1, &VertexArrayID);
-    */
 
     // Close OpenGL window and terminate GLFW
     glfwTerminate();
