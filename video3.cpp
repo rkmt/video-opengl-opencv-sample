@@ -30,48 +30,51 @@ GLFWwindow* window;
 #include "common/shader.hpp"
 #include "common/texture.hpp"
 
+// videoから読み込んでtextureとして処理するための構造体
 typedef struct {
-    GLuint unit;
-    GLuint texture_id;
-    GLuint texture_loc;
-    GLuint vertex_array_id;
-    GLuint vertex_id;
-    GLfloat *vertex_buffer;
-    GLuint uv_id;
-    GLfloat *uv_buffer;
-    int width;
-    int height;
-    const char* texture_name;
-    Mat frame;
-    VideoCapture capture;
+    GLuint unit;                // 0, 1, 2, ...
+    GLuint texture_id;          // glGenTexturesで採番されるID
+    GLuint vertex_array_id;     // glGenVertexArraysで採番されるID
+    GLuint vertex_id;           // vertex buffer object id
+    GLfloat *vertex_buffer;     // vertex_idに対応する実体
+    GLuint uv_id;               // uv buffer object id
+    GLfloat *uv_buffer;         // uv_idに対応する実体
+    int width, height;          // videoサイズ(=textureサイズ)
+    const char* texture_name;   // fragment shaderでの名前
+    GLuint texture_loc;         // fragment shaderでの位置
+    VideoCapture capture;       // (OpenCV) video capture
+    Mat frame;                  // (OpenCV)captured frame
 } VideoTexture;
 
 void textureCreate(VideoTexture& vt, GLuint unit, GLuint programID, VideoCapture capture, GLfloat *vertex_buffer, int nvertex, GLfloat *uv_buffer, int nuv) {
-    vt.unit = unit;
-    vt.vertex_buffer = vertex_buffer;
-    vt.uv_buffer = uv_buffer;
-    glGenTextures(1, &(vt.texture_id));
-    //glBindTexture(GL_TEXTURE_RECTANGLE, Texture);
-    glBindTexture(GL_TEXTURE_2D, vt.texture_id);
-
-    vt.texture_name = "myTextureSampler";
-    // Get a handle for our "myTextureSampler" uniform
-    vt.texture_loc  = glGetUniformLocation(programID, vt.texture_name);
-
-    glGenVertexArrays(1, &(vt.vertex_array_id));
-    glBindVertexArray(vt.vertex_array_id);
-    glGenBuffers(1, &(vt.vertex_id));
-    glBindBuffer(GL_ARRAY_BUFFER, vt.vertex_id);
-    glBufferData(GL_ARRAY_BUFFER, nvertex*sizeof(GLfloat), vt.vertex_buffer, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &(vt.uv_id));
-    glBindBuffer(GL_ARRAY_BUFFER, vt.uv_id);
-    glBufferData(GL_ARRAY_BUFFER, nuv*sizeof(GLfloat), vt.uv_buffer, GL_STATIC_DRAW);
-
+    // video capture (opencv)
     vt.capture = capture;
     vt.width = capture.get(CV_CAP_PROP_FRAME_WIDTH);
     vt.height = capture.get(CV_CAP_PROP_FRAME_HEIGHT);
     printf("video size %d %d\n", vt.width, vt.height);
+
+    vt.unit = unit;
+    vt.vertex_buffer = vertex_buffer;
+    vt.uv_buffer = uv_buffer;
+    glGenTextures(1, &(vt.texture_id));
+    glBindTexture(GL_TEXTURE_2D, vt.texture_id);
+
+    // Get a handle for our "myTextureSampler" uniform
+    vt.texture_name = "myTextureSampler";
+    vt.texture_loc  = glGetUniformLocation(programID, vt.texture_name);
+
+    glGenVertexArrays(1, &(vt.vertex_array_id));
+    glBindVertexArray(vt.vertex_array_id);
+    
+    // vertex buffer
+    glGenBuffers(1, &(vt.vertex_id));
+    glBindBuffer(GL_ARRAY_BUFFER, vt.vertex_id);
+    glBufferData(GL_ARRAY_BUFFER, nvertex*sizeof(GLfloat), vt.vertex_buffer, GL_STATIC_DRAW);
+
+    // uv buffer
+    glGenBuffers(1, &(vt.uv_id));
+    glBindBuffer(GL_ARRAY_BUFFER, vt.uv_id);
+    glBufferData(GL_ARRAY_BUFFER, nuv*sizeof(GLfloat), vt.uv_buffer, GL_STATIC_DRAW);
 
     float x;
     glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &x);//傾斜度合いの最大値
@@ -199,8 +202,6 @@ int main( void ) {
     // Textureをそのまま出す
     GLuint programID = LoadShaders( "../simple.vert", "../simple.frag" );
 
-    // 三角形Mesh
-
     static const GLfloat g_vertex_buffer_data[] = {
         /*
         -1.0f, -1.0f, 0.0f,
@@ -220,7 +221,6 @@ int main( void ) {
         0.5f,  0.5f, 0.0f,
         -0.5f,  0.5f, 0.0f,
     };
-    
 
     // Two UV coordinatesfor each vertex.
     static const GLfloat g_uv_buffer_data[] = {
@@ -245,7 +245,7 @@ int main( void ) {
         textureNextFrame(vTexture2);
         
         // Clear the screen
-        glClear( GL_COLOR_BUFFER_BIT );
+        glClear(GL_COLOR_BUFFER_BIT);
 
         // Use our shader
         glUseProgram(programID);
@@ -263,7 +263,6 @@ int main( void ) {
 
     textureDelete(vTexture1);
     textureDelete(vTexture2);
-
     glDeleteProgram(programID);
 
     // Close OpenGL window and terminate GLFW
