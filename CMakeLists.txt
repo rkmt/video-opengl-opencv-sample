@@ -32,3 +32,50 @@ add_executable(video video.cpp fps.cpp
 )
 target_link_libraries(video ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES} ${ALL_LIBS})
 
+
+# video1
+add_executable(video1 video1.cpp fps.cpp
+	common/shader.cpp
+	common/shader.hpp
+	common/texture.cpp
+	common/texture.hpp
+	simple.frag
+	simple.vert
+)
+target_link_libraries(video1 ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES} ${ALL_LIBS})
+
+# video2
+add_executable(video2 video2.cpp fps.cpp
+	common/shader.cpp
+	common/shader.hpp
+	common/texture.cpp
+	common/texture.hpp
+	simple.frag
+	simple.vert
+)
+target_link_libraries(video2 ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES} ${ALL_LIBS})
+
+# video3
+add_executable(video3 video3.cpp fps.cpp
+	common/shader.cpp
+	common/shader.hpp
+	common/texture.cpp
+	common/texture.hpp
+	simple.frag
+	simple.vert
+)
+target_link_libraries(video3 ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES} ${ALL_LIBS})
+
+
+# video4
+add_executable(video4 video4.cpp fps.cpp
+	common/shader.cpp
+	common/shader.hpp
+	common/texture.cpp
+	common/texture.hpp
+	simple.frag
+	simple.vert
+)
+target_link_libraries(video4 ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES} ${ALL_LIBS})
+
+

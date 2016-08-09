@@ -1,4 +1,5 @@
-// multiple video textures
+//  Feature-Based Image Metamorphosis (siggraph '92) in shader
+
 #include <opencv2/features2d.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/opencv.hpp>
@@ -29,6 +30,8 @@ using namespace glm;
 #include "common/shader.hpp"
 #include "common/texture.hpp"
 
+#define NSEG 10
+
 // videoから読み込んでtextureとして処理するための構造体
 typedef struct {
     GLuint unit;                // 0, 1, 2, ...
@@ -43,6 +46,9 @@ typedef struct {
     GLuint texture_loc;         // fragment shaderでの位置
     VideoCapture capture;       // (OpenCV) video capture
     Mat frame;                  // (OpenCV)captured frame
+
+    GLfloat seg[NSEG][2];
+    GLuint nseg;
 } VideoTexture;
 
 void textureCreate(VideoTexture& vt, GLuint unit, GLuint programID, VideoCapture capture, GLfloat *vertex_buffer, int nvertex, GLfloat *uv_buffer, int nuv) {
