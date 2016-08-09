@@ -11,5 +11,6 @@
 
 + video.cpp :  OpenCV Captureクラスによるビデオ取得とOpenGLによる表示
 + video1.cpp : video.cppを三角形Meshで表現。
++ video3.cpp : 複数のビデオストリームをそれぞれ独立したtextureとして扱う。
 
 
