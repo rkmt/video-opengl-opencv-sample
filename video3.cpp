@@ -249,6 +249,10 @@ int main( void ) {
         // Use our shader
         glUseProgram(programID);
 
+        // ブレンドを有効にする
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
         textureDraw(vTexture1);
         textureDraw(vTexture2);
 
