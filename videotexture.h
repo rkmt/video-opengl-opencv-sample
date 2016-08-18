@@ -1,4 +1,4 @@
-//  Feature-Based Image Metamorphosis (siggraph '92) in shader
+//  [1] Feature-Based Image Metamorphosis (siggraph '92) in GLSL
 
 #include <opencv2/opencv.hpp>
 #include <vector>
@@ -29,17 +29,17 @@ typedef struct {
     GLuint texture_loc;         // fragment shaderでの位置
     VideoCapture capture;       // (OpenCV) video capture (is_video == 1)
 
-    GLfloat *P1;
-    GLfloat *Q1;
-    GLfloat *P2;
-    GLfloat *Q2;
-    GLuint npos;
-    GLuint Q1_loc, P1_loc, P2_loc, Q2_loc, npos_loc;
+    GLfloat *pos;               // feature line poinst (4 * npos)
+    GLuint npos;                // the number of feature line pairs
+    GLuint debug;               // debug flag (1 or 0)
+    GLfloat param[3];           // weight constants (a, b, p in [1])
+    GLuint pos_loc, npos_loc, param_loc, debug_loc; // shader locations
 } VideoTexture;
 
-void textureCreate(VideoTexture& vt, GLuint program_id, bool is_video, VideoCapture capture, Mat &image, GLfloat *vertex_buffer, int nvertex, GLfloat *uv_buffer, int nuv);
-void textureNextFrame(VideoTexture &vt);
-void textureDraw(VideoTexture &vt);
+void vtexCreate(VideoTexture& vt, GLuint program_id, bool is_video, VideoCapture capture, Mat &image, GLfloat *vertex_buffer, int nvertex, GLfloat *uv_buffer, int nuv);
+void vtexNextFrame(VideoTexture &vt);
+void vtexDraw(VideoTexture &vt);
 // Cleanup VBO
-void textureDelete(VideoTexture &vt);
+void vtexDelete(VideoTexture &vt);
+void vtexSaveParams(VideoTexture &vt, string fname);
 

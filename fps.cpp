@@ -29,11 +29,12 @@ void stopFPS() {
 
 void tickFPS() {
     int64 nowTime, diffTime;
+    int sec = 5;
     nowTime = cv::getTickCount();
     diffTime = (int)((nowTime - startTime) * f);
-    if (diffTime >= 1000) {
+    if (diffTime >= sec * 1000) {
         startTime = nowTime;
-        fps = cnt - oldcnt;
+        fps = (cnt - oldcnt) / (float)sec;
         oldcnt = cnt;
         cout << "fps=" << fps << "\n";
     }

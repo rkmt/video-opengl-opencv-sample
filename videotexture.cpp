@@ -1,6 +1,6 @@
 #include "videotexture.h"
 
-void textureCreate(VideoTexture& vt, GLuint program_id, bool is_video, VideoCapture capture, Mat &image, GLfloat *vertex_buffer, int nvertex, GLfloat *uv_buffer, int nuv) {
+void vtexCreate(VideoTexture& vt, GLuint program_id, bool is_video, VideoCapture capture, Mat &image, GLfloat *vertex_buffer, int nvertex, GLfloat *uv_buffer, int nuv) {
     static int unit_number  = 0;
     // video capture (opencv)
     vt.is_video = is_video;
@@ -38,16 +38,20 @@ void textureCreate(VideoTexture& vt, GLuint program_id, bool is_video, VideoCapt
     
     glUseProgram(vt.program_id); // Use our shader
     // Get a handle for our "myTextureSampler" uniform
-    vt.texture_name = "myTextureSampler";
-    vt.texture_loc  = glGetUniformLocation(program_id, vt.texture_name);
+    vt.texture_loc  = glGetUniformLocation(program_id, "myTextureSampler");
 
-    vt.P1_loc  = glGetUniformLocation(program_id, "P1");
-    vt.Q1_loc  = glGetUniformLocation(program_id, "Q1");
-    vt.P2_loc  = glGetUniformLocation(program_id, "P2");
-    vt.Q2_loc  = glGetUniformLocation(program_id, "Q2");
+    vt.pos_loc  = glGetUniformLocation(program_id, "pos");
     vt.npos_loc = glGetUniformLocation(program_id, "npos");
+    vt.param_loc = glGetUniformLocation(program_id, "param");
+    vt.debug_loc = glGetUniformLocation(program_id, "debug");
 
-    cout << "P1:" << vt.P1_loc << " Q1:" << vt.Q1_loc << " P2:" << vt.P2_loc << " Q2:" << vt.Q2_loc << " npos:" << vt.npos_loc << endl;
+    // weight constants 
+    vt.param[0] = 0.01; // a
+    vt.param[1] = 2;   // b
+    vt.param[2] = 1; // p
+    vt.debug = 1;
+
+    cout << "Locations: pos_loc:" <<  vt.pos_loc << " npos:" << vt.npos_loc << endl;
 
     glGenVertexArrays(1, &(vt.vertex_array_id));
     glBindVertexArray(vt.vertex_array_id);
@@ -64,7 +68,7 @@ void textureCreate(VideoTexture& vt, GLuint program_id, bool is_video, VideoCapt
 
 }
 
-void textureNextFrame(VideoTexture &vt) {
+void vtexNextFrame(VideoTexture &vt) {
     if (!vt.is_video) return;
     Mat frame;
     vt.capture >> frame;
@@ -78,7 +82,7 @@ void textureNextFrame(VideoTexture &vt) {
     glGenerateMipmap(GL_TEXTURE_2D);
 }
 
-void textureDraw(VideoTexture &vt) {
+void vtexDraw(VideoTexture &vt) {
     glUseProgram(vt.program_id); // Use our shader
     // Bind our texture in Texture Unit unit
     glActiveTexture(GL_TEXTURE0 + vt.unit); 
@@ -86,11 +90,10 @@ void textureDraw(VideoTexture &vt) {
     glUniform1i(vt.texture_loc, vt.unit);
 
     // morphing parameters
-    glUniform2fv(vt.P1_loc, vt.npos, (float*)vt.P1);
-    glUniform2fv(vt.Q1_loc, vt.npos, (float*)vt.Q1);
-    glUniform2fv(vt.P2_loc, vt.npos, (float*)vt.P2);
-    glUniform2fv(vt.Q2_loc, vt.npos, (float*)vt.Q2);
+    glUniform2fv(vt.pos_loc, vt.npos * 4, (float*)vt.pos); // npos * 4 points
     glUniform1i(vt.npos_loc, vt.npos);
+    glUniform3f(vt.param_loc, vt.param[0], vt.param[1], vt.param[2]);
+    glUniform1i(vt.debug_loc, vt.debug);
 
     // 1rst attribute buffer : vertices
     glBindVertexArray(vt.vertex_array_id);
@@ -123,9 +126,15 @@ void textureDraw(VideoTexture &vt) {
 }
 
 // Cleanup VBO
-void textureDelete(VideoTexture &vt) {
+void vtexDelete(VideoTexture &vt) {
     glDeleteBuffers(1, (const GLuint*)&(vt.vertex_buffer));
     glDeleteBuffers(1, (const GLuint*)&(vt.uv_buffer));
     glDeleteTextures(1, &(vt.texture_loc));
     glDeleteVertexArrays(1, &(vt.vertex_array_id));
+}
+
+void vtexSaveParams(VideoTexture &vt, string fname) {
+    ofstream out;
+    out.open(fname, std::ios::out);
+    out << vt.param[0] << " " << vt.param[1] << " " << vt.param[2] << endl;
 }
