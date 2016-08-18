@@ -19,14 +19,12 @@ using namespace glm;
 #include "common/texture.hpp"
 
 #include "fps.h"
-#include "videotexture.h"
+#include "VideoTexture.h"
 
-VideoTexture vTexture0, vTexture1, vTexture2;
+VideoTexture vtex0, vtex1;
 
-#define NSEG 100
 static GLfloat points[NSEG][2]; // Pi, Qi, P'i, Q'i, ....  [center (0, 0)]
 static int npoints = 0;
-static GLfloat gpoints[NSEG][2]; // Pi, Qi, P'i, Q'i, .... [UV coord]
 
 // Render lines
 void vbo_display(GLuint &vao) {
@@ -53,7 +51,7 @@ void vbo_initialize(GLuint &vao, GLuint &vbo) {
 	//glBufferData(GL_ARRAY_BUFFER, sizeof(vertices_position), vertices_position, GL_STATIC_DRAW);	
 	glBufferData(GL_ARRAY_BUFFER, NSEG * 2 * sizeof(GLfloat), 0, GL_DYNAMIC_DRAW);	
 
-    GLuint shaderProgram = LoadShaders( "../vert.shader", "../frag.shader" );
+    GLuint shaderProgram = LoadShaders( "../line.vert", "../line.frag" );
 
 	// Get the location of the attributes that enters in the vertex shader
 	GLint position_attribute = glGetAttribLocation(shaderProgram, "position");
@@ -67,40 +65,48 @@ void vbo_initialize(GLuint &vao, GLuint &vbo) {
     glBindVertexArray(0);
 }
 
-void showParam(GLfloat param[]) {
-    cout << "param: a=" << param[0] << ", b=" << param[1] << ", p=" << param[2] << endl;
-}
 
 
 static double x_press, y_press;
-
-bool morph_mode = false;
 
 static void onKey(GLFWwindow *win, int key, int scancode, int action, int mods) {
     if (action == GLFW_PRESS) {
         cout << "key=" << key << " " << action << endl;
         switch (key) {
         case GLFW_KEY_M:
-            morph_mode = !morph_mode;
-            if (morph_mode) {
+            vtex1.morph = !vtex1.morph;
+            if (vtex1.morph) {
                 for (int i = 0; i < npoints; i++) {
-                    gpoints[i][0] = (points[i][0] / 2.0) + 0.5;
-                    gpoints[i][1] = (-points[i][1] / 2.0) + 0.5;
+                    vtex1.pos[i][0] = (points[i][0] / 2.0) + 0.5;
+                    vtex1.pos[i][1] = (-points[i][1] / 2.0) + 0.5;
                 }
-                vTexture2.pos = (GLfloat*)gpoints;
-                vTexture2.npos = npoints / 4;
-                vtexSaveParams(vTexture2, "vTexture2.txt");
-            } else {
-                vTexture2.npos = 0; // nor morph
+                vtex1.npos = npoints;
+                //vtex1.saveParams("../vtex1.txt");
             }
-            cout << "toggle morph mode" << morph_mode << "nops: " << vTexture2.npos << endl;
+            vtex1.showParams();
             break;
             
         case GLFW_KEY_D:
-            vTexture2.debug = !vTexture2.debug;
+            vtex1.debug = !vtex1.debug;
+            break;
+
+        case GLFW_KEY_L:
+            vtex1.loadParams("../vtex1.txt");
+            vtex1.showParams();
+            for (int i = 0; i < vtex1.npos; i++) {
+                points[i][0] = (vtex1.pos[i][0] - 0.5) * 2.0;
+                points[i][1] = (0.5 - vtex1.pos[i][1]) * 2.0;
+            }
+            npoints = vtex1.npos;
+            vtex1.morph = true;
+            break;
+
+        case GLFW_KEY_S:
+            vtex1.saveParams("../vtex1.txt");
             break;
 
         case GLFW_KEY_DELETE:
+        case GLFW_KEY_BACKSPACE:
             if (npoints > 0) {
                 cout << "D" << key << " " << npoints << endl;
                 npoints = ((npoints - 1) / 4) * 4;
@@ -108,23 +114,20 @@ static void onKey(GLFWwindow *win, int key, int scancode, int action, int mods) 
             cout << "delte " << npoints << endl;
             break;
 
-
+            // morph weight constants    
         case GLFW_KEY_A:
-            vTexture2.param[0] += (GLFW_MOD_SHIFT & mods) ? 0.1 : -0.1;
-            showParam(vTexture2.param);
+            vtex1.param[0] *= (GLFW_MOD_SHIFT & mods) ? 1.1 : (1.0/1.1);
+            vtex1.showParams();
             break;
         case GLFW_KEY_B:
-            vTexture2.param[1] += (GLFW_MOD_SHIFT & mods) ? 0.1 : -0.1;
-            showParam(vTexture2.param);
+            vtex1.param[1] += (GLFW_MOD_SHIFT & mods) ? 0.1 : -0.1;
+            vtex1.showParams();
             break;
         case GLFW_KEY_P:
-            vTexture2.param[2] += (GLFW_MOD_SHIFT & mods) ? 0.1 : -0.1;
-            showParam(vTexture2.param);
+            vtex1.param[2] += (GLFW_MOD_SHIFT & mods) ? 0.1 : -0.1;
+            vtex1.showParams();
             break;
-
         }
-
-        
     }
 }
 
@@ -153,27 +156,7 @@ static void onMouseButton(GLFWwindow *win, int button, int action , int mods) {
     }
 }
 
-
-
-static void onCursorPos(GLFWwindow *win, double x, double y) {
-    cout << "Cursor: " << x << ", " << y << endl;
-}
-
 int main( void ) {
-    VideoCapture capture1("../IMG_6154.MOV");
-    if (!capture1.isOpened()) {
-        cerr << "Failed to open the video device, video file or image sequence!\n" << endl;
-        return 0;
-    }
-
-    VideoCapture capture2("../IMG_6169.MOV");
-    if (!capture2.isOpened()) {
-        cerr << "Failed to open the video device, video file or image sequence!\n" << endl;
-        return 0;
-    }
-
-    Mat face_image = imread("../face-texture.jpg", CV_LOAD_IMAGE_COLOR);
-
     // Initialise GLFW
     if( !glfwInit() ) {
         fprintf( stderr, "Failed to initialize GLFW\n" );
@@ -217,68 +200,38 @@ int main( void ) {
 
     GLuint programID = LoadShaders( "../simple.vert", "../morph.frag" );
 
-    static const GLfloat g_vertex_buffer_data0[] = {
-        -1.0f, -1.0f, 0.0f,
-        1.0f, -1.0f, 0.0f,
-        1.0f,  1.0f, 0.0f,
-        -1.0f,  1.0f, 0.0f,
-    };
-
-    // Two UV coordinatesfor each vertex.
-    static const GLfloat g_uv_buffer_data[] = {
-        0.0f, 1.0f,
-        1.0f, 1.0f,
-        1.0f, 0.0f,
-        0.0f, 0.0f
-    };
-
-    // テクスチャを準備する
-
-    Mat dummy_frame;
     // background face texture (static image)
-    vtexCreate(vTexture0, programID, false, 0, face_image, (GLfloat*)g_vertex_buffer_data0, sizeof(g_vertex_buffer_data0) / sizeof(GLfloat), (GLfloat*)g_uv_buffer_data, sizeof(g_uv_buffer_data) / sizeof(GLfloat));
+    Mat face_image = imread("../face-texture.jpg", CV_LOAD_IMAGE_COLOR);
+    vtex0.init(programID, false, 0, face_image);        // static image texture
+    
+    // video テクスチャを準備する
+    VideoCapture capture1("../IMG_6155.MOV");
+    if (!capture1.isOpened()) {
+        cerr << "Failed to open the video device, video file or image sequence!\n" << endl;
+        return 0;
+    }
+    Mat dummy_frame;
+    vtex1.init(programID, true, capture1, dummy_frame); // video texture
 
-    // video texture 1
-    vtexCreate(vTexture1, programID, true, capture1, dummy_frame, (GLfloat*)g_vertex_buffer_data0, sizeof(g_vertex_buffer_data0) / sizeof(GLfloat), (GLfloat*)g_uv_buffer_data, sizeof(g_uv_buffer_data) / sizeof(GLfloat));
-
-    // video texture 2
-    vtexCreate(vTexture2, programID, true, capture2, dummy_frame, (GLfloat*)g_vertex_buffer_data0, sizeof(g_vertex_buffer_data0) / sizeof(GLfloat), (GLfloat*)g_uv_buffer_data, sizeof(g_uv_buffer_data) / sizeof(GLfloat));
-
-    /*
-    // morphing setup sample
-    // p1-q1 の線分が p2-q2の線分に対応するようにtexture全体が変形する (morph.frag)
-    vTexture2.npos = 0;         // the number of feature segment pairs
-    vTexture2.P2 = (GLfloat*)p2;
-    vTexture2.Q2 = (GLfloat*)q2;
-
-    vTexture2.npos = 0;
-    vTexture2.P1 = (GLfloat*)p1;
-    vTexture2.Q1 = (GLfloat*)q1;
-    */
-
-
-    GLuint vao, vbo;
+    GLuint vao, vbo;  // display line segments for morphing debug
     vbo_initialize(vao, vbo);
     
-    startFPS();
-    
-    // ブレンドを有効にする
+    // ブレンドを有効にする  to enable alpha values in shaders
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
+    startFPS();
     do{
         tickFPS();
 
         // Get next video frames
-        // vtexNextFrame(vTexture1);
-        vtexNextFrame(vTexture2);
+        vtex1.nextFrame();
         
         // Clear the screen
         glClear(GL_COLOR_BUFFER_BIT);
 
-        vtexDraw(vTexture0);
-//        vtexDraw(vTexture1);
-        vtexDraw(vTexture2);
+        vtex0.draw();
+        vtex1.draw();
 
         for (int i = npoints; i < NSEG; i++) {
             points[i][0] = points[i][1] = 0;
@@ -286,7 +239,6 @@ int main( void ) {
         vbo_setup(vbo, (GLfloat*)points, NSEG * 2 * sizeof(GLfloat));
 
         vbo_display(vao);
-
 
         // Swap buffers
         glfwSwapBuffers(window);
@@ -296,13 +248,10 @@ int main( void ) {
     while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
            glfwWindowShouldClose(window) == 0 );
 
-    vtexDelete(vTexture0);
-    vtexDelete(vTexture1);
-    vtexDelete(vTexture2);
+    vtex0.cleanup();
+    vtex1.cleanup();
     glDeleteProgram(programID);
-
-    // Close OpenGL window and terminate GLFW
-    glfwTerminate();
+    glfwTerminate(); // Close OpenGL window and terminate GLFW
 
     return 0;
 }

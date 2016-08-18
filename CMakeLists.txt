@@ -68,14 +68,28 @@ target_link_libraries(video3 ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${GLEW_LIBRARIES} 
 
 
 # video4
-add_executable(video4 video4.cpp fps.cpp
+add_executable(video4 video4.cpp VideoTexture.cpp fps.cpp 
 	common/shader.cpp
 	common/shader.hpp
 	common/texture.cpp
 	common/texture.hpp
+	morph.frag
 	simple.frag
 	simple.vert
 )
 target_link_libraries(video4 ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES} ${ALL_LIBS})
+
+# video5
+add_executable(video5 video5.cpp VideoTexture.cpp fps.cpp 
+	common/shader.cpp
+	common/shader.hpp
+	common/texture.cpp
+	common/texture.hpp
+	morph.frag
+	simple.frag
+	simple.vert
+)
+target_link_libraries(video5 ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES} ${ALL_LIBS})
+
 
 

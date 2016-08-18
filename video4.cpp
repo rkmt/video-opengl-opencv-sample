@@ -19,23 +19,26 @@ using namespace glm;
 #include "common/texture.hpp"
 
 #include "fps.h"
-#include "videotexture.h"
+#include "VideoTexture.h"
+
+VideoTexture vtex0, vtex1;
+
+static void onKey(GLFWwindow *win, int key, int scancode, int action, int mods) {
+    if (action == GLFW_PRESS) {
+        cout << "key=" << key << " " << action << endl;
+        switch (key) {
+        case GLFW_KEY_M:
+            vtex1.morph = !vtex1.morph;
+            break;
+            
+        case GLFW_KEY_D:
+            vtex1.debug = !vtex1.debug;
+            break;
+        }
+    }
+}
 
 int main( void ) {
-    VideoCapture capture1("../IMG_6154.MOV");
-    if (!capture1.isOpened()) {
-        cerr << "Failed to open the video device, video file or image sequence!\n" << endl;
-        return 0;
-    }
-
-    VideoCapture capture2("../IMG_6155.MOV");
-    if (!capture2.isOpened()) {
-        cerr << "Failed to open the video device, video file or image sequence!\n" << endl;
-        return 0;
-    }
-
-    Mat face_image = imread("../face-texture.jpg", CV_LOAD_IMAGE_COLOR);
-
     // Initialise GLFW
     if( !glfwInit() ) {
         fprintf( stderr, "Failed to initialize GLFW\n" );
@@ -58,6 +61,8 @@ int main( void ) {
         return -1;
     }
     glfwMakeContextCurrent(window);
+    
+    glfwSetKeyCallback(window, onKey);
 
     // Initialize GLEW
     glewExperimental = true; // Needed for core profile
@@ -76,95 +81,39 @@ int main( void ) {
 
     GLuint programID = LoadShaders( "../simple.vert", "../morph.frag" );
 
-    static const GLfloat g_vertex_buffer_data0[] = {
-        -1.0f, -1.0f, 0.0f,
-        1.0f, -1.0f, 0.0f,
-        1.0f,  1.0f, 0.0f,
-        -1.0f,  1.0f, 0.0f,
-    };
-
-    /*
-    static const GLfloat g_vertex_buffer_data1[] = {
-        0, 0, 0,
-        0.75, 0.25, 0,
-        1, 1, 0,
-        0.25, 0.75, 0,
-    };
-    
-
-    static const GLfloat g_vertex_buffer_data2[] = {
-        -0.5f, -0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
-        0.5f,  0.5f, 0.0f,
-        -0.5f,  0.5f, 0.0f,
-    };
-    */
-
-    // Two UV coordinatesfor each vertex.
-    static const GLfloat g_uv_buffer_data[] = {
-        0.0f, 1.0f,
-        1.0f, 1.0f,
-        1.0f, 0.0f,
-        0.0f, 0.0f
-    };
-
-    VideoTexture vTexture0, vTexture1, vTexture2;
-    // テクスチャを準備する
-
-    Mat dummy_frame;
     // background face texture (static image)
-    textureCreate(vTexture0, programID, false, 0, face_image, (GLfloat*)g_vertex_buffer_data0, sizeof(g_vertex_buffer_data0) / sizeof(GLfloat), (GLfloat*)g_uv_buffer_data, sizeof(g_uv_buffer_data) / sizeof(GLfloat));
-
-    // video texture 1
-    textureCreate(vTexture1, programID, true, capture1, dummy_frame, (GLfloat*)g_vertex_buffer_data0, sizeof(g_vertex_buffer_data0) / sizeof(GLfloat), (GLfloat*)g_uv_buffer_data, sizeof(g_uv_buffer_data) / sizeof(GLfloat));
-
-    // video texture 2
-    textureCreate(vTexture2, programID, true, capture2, dummy_frame, (GLfloat*)g_vertex_buffer_data0, sizeof(g_vertex_buffer_data0) / sizeof(GLfloat), (GLfloat*)g_uv_buffer_data, sizeof(g_uv_buffer_data) / sizeof(GLfloat));
-
-    // morphing setup sample
-    // p1-q1 の線分が p2-q2の線分に対応するようにtexture全体が変形する (morph.frag)
-    vTexture2.npos = 3;         // the number of feature segment pairs
-    static const GLfloat p2[][2] =  {{0.494417, 0.617314}, {0.391364, 0.182178}, {0.192998, 0.369263}};
-    static const GLfloat q2[][2] = {{0.858242, 0.570093}, {0.877008, 0.203149}, {0.147721, 0.650742}};
-    static const GLfloat p1[][2] =  {{0.545622, 0.405601}, {0.53417, 0.345142}, {0.471393, 0.342964}};
-    static const GLfloat q1[][2] = {{0.618337, 0.409629}, {0.63667, 0.364585}, {0.455713, 0.406392}};
-    vTexture2.P1 = (GLfloat*)p1;
-    vTexture2.Q1 = (GLfloat*)q1;
-    vTexture2.P2 = (GLfloat*)p2;
-    vTexture2.Q2 = (GLfloat*)q2;
-
-    vTexture1.npos = 0;
-    /*
-    static const GLfloat p1[][2] =  {{0.5, 0.1}, {0.25, 0.4}};
-    static const GLfloat q1[][2] = {{0.5, 0.9}, {0.4, 0.2}};
-    vTexture1.P1 = (GLfloat*)p1;
-    vTexture1.Q1 = (GLfloat*)q1;
-    static const GLfloat p2[][2] =  {{0.45, 0.15}, {0.3, 0.3}};
-    static const GLfloat q2[][2] = {{0.6, 0.85}, {0.35, 0.5}};
-    vTexture1.P2 = (GLfloat*)p2;
-    vTexture1.Q2 = (GLfloat*)q2;
-    */
+    Mat face_image = imread("../face-texture.jpg", CV_LOAD_IMAGE_COLOR);
+    vtex0.init(programID, false, 0, face_image);        // static image texture
+    vtex0.alpha = 1;
     
-    
-    startFPS();
-    
-    // ブレンドを有効にする
+    // video テクスチャを準備する
+    VideoCapture capture1("../IMG_6155.MOV");
+    if (!capture1.isOpened()) {
+        cerr << "Failed to open the video device, video file or image sequence!\n" << endl;
+        return 0;
+    }
+    Mat dummy_frame;
+    vtex1.init(programID, true, capture1, dummy_frame); // video texture
+    vtex1.alpha = 0.5;
+    vtex1.loadParams("../vtex1.txt");
+    vtex1.morph = true;
+
+    // ブレンドを有効にする  to enable alpha values in shaders
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
+    startFPS();
     do{
         tickFPS();
 
         // Get next video frames
-        //textureNextFrame(vTexture1);
-        textureNextFrame(vTexture2);
+        vtex1.nextFrame();
         
         // Clear the screen
         glClear(GL_COLOR_BUFFER_BIT);
 
-        textureDraw(vTexture0);
-        //textureDraw(vTexture1);
-        textureDraw(vTexture2);
+        vtex0.draw();
+        vtex1.draw();
 
         // Swap buffers
         glfwSwapBuffers(window);
@@ -174,13 +123,10 @@ int main( void ) {
     while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
            glfwWindowShouldClose(window) == 0 );
 
-    textureDelete(vTexture0);
-    textureDelete(vTexture1);
-    textureDelete(vTexture2);
+    vtex0.cleanup();
+    vtex1.cleanup();
     glDeleteProgram(programID);
-
-    // Close OpenGL window and terminate GLFW
-    glfwTerminate();
+    glfwTerminate(); // Close OpenGL window and terminate GLFW
 
     return 0;
 }
