@@ -92,4 +92,17 @@ add_executable(video5 video5.cpp VideoTexture.cpp fps.cpp
 target_link_libraries(video5 ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES} ${ALL_LIBS})
 
 
+# video6
+add_executable(video6 video6.cpp VideoTexture.cpp fps.cpp 
+	common/shader.cpp
+	common/shader.hpp
+	common/texture.cpp
+	common/texture.hpp
+	morph.frag
+	simple.frag
+	simple.vert
+)
+target_link_libraries(video6 ${OpenCV_LIBS} ${GLFW_LIBRARIES} ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES} ${ALL_LIBS})
+
+
 

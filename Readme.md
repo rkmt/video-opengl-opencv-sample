@@ -31,6 +31,10 @@
 +       s キー でファイル保存
 +       l キー でファイルロード
 
+### video6.cpp render-to-texture sample
+
+video4.cpp の描画内容をtextureに書き込み、それを表示する。
+
 
 
 　　　
