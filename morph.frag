@@ -92,7 +92,7 @@ void main_morph() {
     }
     vec2 xdash = UV + dsum / weightsum;
     color.rgb = texture(myTextureSampler, xdash).rgb;
-    color.a = 0.5;
+    color.a = alpha;
 
     if (xdash.x < 0 || 1 < xdash.x || xdash.y < 0 || 1 < xdash.y) {
         color.a = 0;
@@ -126,7 +126,7 @@ void main() {
     if (morph != 0) {
         main_morph();
     } else {
-        color.a = 0.5;
+        color.a = alpha;
         color.rgb = texture(myTextureSampler, UV).rgb;
     }
 }
